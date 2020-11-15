@@ -12,7 +12,7 @@
 	<groupId>com.helxir</groupId>
 	<artifactId>medicheal</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<packaging>war</packaging>
+	<packaging>jar</packaging>
 	<name>medicheal</name>
 	<description>Medic Heal Health care application</description>
 
