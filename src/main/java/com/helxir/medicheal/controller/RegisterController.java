@@ -8,6 +8,7 @@ import javax.validation.Valid;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,14 +27,14 @@ import com.nulabinc.zxcvbn.Zxcvbn;
 @Controller
 public class RegisterController {
 	
-	//private BCryptPasswordEncoder bCryptPasswordEncoder;
+	private BCryptPasswordEncoder bCryptPasswordEncoder;
 	private UserService userService;
 	private EmailService emailService;
 
 	@Autowired
 	public RegisterController(
 			UserService userService, EmailService emailService) {
-		//this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+		this.bCryptPasswordEncoder = bCryptPasswordEncoder;
 		this.userService = userService;
 		this.emailService = emailService;
 	}
@@ -47,8 +48,8 @@ public class RegisterController {
 	}
 	
 	// Process form input data
-	@PostMapping("/registerCust")
-	public ModelAndView processRegistrationForm(ModelAndView modelAndView, @Valid User user, BindingResult bindingResult) {
+	@PostMapping("/register")
+	public ModelAndView processRegistrationForm(ModelAndView modelAndView, @Valid User user, BindingResult bindingResult, HttpServletRequest request) {
 				
 		// Lookup user in database by e-mail
 		User userExists = userService.findByEmail(user.getEmail());
@@ -76,14 +77,16 @@ public class RegisterController {
 		        
 		    userService.saveUser(user);
 				
-//			String appUrl = request.getScheme() + "://" + request.getServerName()+request.getp;
-		    String appUrl = "http://localhost:8888/";
+			String appUrl = request.getScheme() + "://" + request.getServerName()+":"+request.getServerPort();
+			System.out.println("app url : "+ appUrl);
+			//http://localhostHTTP/1.1
+//		    String appUrl = "http://localhost:8888/";
 
 			SimpleMailMessage registrationEmail = new SimpleMailMessage();
 			registrationEmail.setTo(user.getEmail());
 			registrationEmail.setSubject("Registration Confirmation");
 			registrationEmail.setText("To confirm your e-mail address, please click the link below:\n"
-					+ appUrl + "confirm?token=" + user.getConfirmationToken());
+					+ appUrl + "/confirm?token=" + user.getConfirmationToken());
 			registrationEmail.setFrom("spring.email.auth@gmail.com");
 			emailService.sendEmail(registrationEmail);
 
@@ -120,22 +123,22 @@ public class RegisterController {
 		
 		Strength strength = passwordCheck.measure(requestParams.get("password"));
 		
-//		if (strength.getScore() < 3) {
-//			//modelAndView.addObject("errorMessage", "Your password is too weak.  Choose a stronger one.");
-//			bindingResult.reject("password");
-//			
-//			redir.addFlashAttribute("errorMessage", "Your password is too weak.  Choose a stronger one.");
-//
-//			modelAndView.setViewName("redirect:confirm?token=" + requestParams.get("token"));
-//			System.out.println(requestParams.get("token"));
-//			return modelAndView;
-//		}
+		if (strength.getScore() < 3) {
+//			modelAndView.addObject("errorMessage", "Your password is too weak.  Choose a stronger one.");
+			bindingResult.reject("password");
+			
+			redir.addFlashAttribute("errorMessage", "Your password is too weak.  Choose a stronger one.");
+
+			modelAndView.setViewName("redirect:confirm?token=" + requestParams.get("token"));
+			System.out.println(requestParams.get("token"));
+			return modelAndView;
+		}
 	
 		// Find the user associated with the reset token
 		User user = userService.findByConfirmationToken(requestParams.get("token"));
 
 		// Set new password
-	//	user.setPassword(bCryptPasswordEncoder.encode(requestParams.get("password")));
+//		user.setPassword(bCryptPasswordEncoder.encode(requestParams.get("password")));
 		user.setPassword(requestParams.get("password"));
 
 		// Set user to enabled
